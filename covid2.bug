@@ -1,0 +1,10 @@
+model {
+    for (j in 1:length(y)) {
+        y[j] ~ dbin(theta[j], n[j])
+        theta[j] ~ dnorm(mu,1/sigma^2)
+    }
+
+    mu ~ dunif(0,1)
+    sigma ~ dunif(0,1)
+
+}
