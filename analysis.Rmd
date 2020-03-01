@@ -1,18 +1,32 @@
+<head>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+ <script src="http://code.jquery.com/jquery.js"></script>
+</head>
+<h1>Mortality Rate of COVID-19</h1>
+<div class="jumbotron">
+  
+  <p>How deadly is coronavirus COVID-19? coviStats.com seeks to answer this question using a Bayesian hierarchical statistical model to estimate the mortality rate of COVID-19 both worldwide and within individual countries. Model updated daily as new data becomes available.</p>
+  <p>Last update: `r format(Sys.Date(),'%m-%d-%Y')`</p>
+</div>
 ---
-title: "test"
-date: "2/28/2020"
 output: html_document
 ---
 
-<h1> hi </h1>
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-```{r run_model}
+```{r run_model, include=FALSE}
 require(rjags)
 require(lattice)
 setwd("p:/bayes/COVID-19")
-d <- read.csv(paste("p:/bayes/COVID-19/csse_covid_19_data/csse_covid_19_daily_reports/", format(Sys.Date(),"%m-%d-%Y"), ".csv", sep=""))
+## d <- read.csv(paste("p:/bayes/COVID-19/csse_covid_19_data/csse_covid_19_daily_reports/", format(Sys.Date(),"%m-%d-%Y"), ".csv", sep=""))
+
+d <- read.csv("p:/bayes/COVID-19/csse_covid_19_data/csse_covid_19_daily_reports/02-29-2020.csv")
+
 names(d)[5] <- "y"
 names(d)[4] <- "n"
 d <- aggregate(d[,c("n","y")], by=list(d$Country.Region), FUN=sum)
@@ -21,31 +35,48 @@ update(m,10000)
 x <- coda.samples(m, c("P", "T"), n.iter=10000)
 i <- 27
 densityplot(as.matrix(x)[,paste("P[",toString(i),"]",sep="")], xlab = paste("Mortality Rate (%) [",d[i,"Group.1"], "]"))
+L <- length(d$y)
+q <- summary(x)[[2]]
+m <- summary(x)[[1]]
+rdf <- data.frame(d$Group.1,q[1:L,"2.5%"],q[1:L,"50%"],q[1:L,"97.5%"],m[1:L,"Mean"],d$n,d$y)
+names(rdf) <- c("Region","2.5%","50%","97.5%","Mean","Cases","Deaths")
+tdf <- data.frame("Worldwide",q[L+1,"2.5%"],q[L+1,"50%"],q[L+1,"97.5%"],m[L+1,"Mean"],sum(d$n),sum(d$y))
+names(tdf) <- c("Region","2.5%","50%","97.5%","Mean","Cases","Deaths")
 
 
+```
+<div class="dropdown">
+  <button class="btn btn-secondary btn-lg dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+    Large button
+  </button>
+  <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+    <a class="dropdown-item" href="/tset">Action</a>
+    <a class="dropdown-item" href="/tset">Another action</a>
+    <a class="dropdown-item" href="tset">Something else here</a>
+  </div>
+</div>
+
+
+```{r global_summary, echo=FALSE}
+##print(rdf)
+library(knitr)
+kable(rbind(tdf,rdf), row.names = FALSE, digits = 2, align = 'lllllll')
+densityplot(as.matrix(x)[,"T"], xlab = "Mortality Rate (%) [ Global ]")
 ```
 
 ## R Markdown
 
 ```{r summary}
-summary(x)
+q <- summary(x)[[2]]
 ```
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
+```{r plot}
 for (i in c(60,33,51,27,17,24)) {
   print(densityplot(as.matrix(x)[,paste("P[",toString(i),"]",sep="")], xlab = paste("Mortality Rate (%) [",d[i,"Group.1"], "]")))
 }
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
